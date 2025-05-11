@@ -22,7 +22,7 @@ const authRoutes = require('./routes/authroutes');
 const projectRoutes = require('./routes/projectroutes');
 const taskRoutes = require('./routes/taskroutes');
 
-// Route registration with explicit paths
+// Basic route registration
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(buildPath));
   
   // Handle all other routes by serving index.html
-  app.get('*', (req, res) => {
+  app.get('/*', (req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'));
   });
 } else {
