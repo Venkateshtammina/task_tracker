@@ -15,17 +15,14 @@ const User = require('../models/User');
 const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
 
-console.log('Registering /signup');
+// Auth routes
 router.post('/signup', signupUser);
-console.log('Registering /login');
 router.post('/login', loginUser);
-console.log('Registering /forgot-password');
 router.post('/forgot-password', forgotPassword);
-console.log('Registering /verify-otp');
 router.post('/verify-otp', verifyOTP);
-console.log('Registering /reset-password');
 router.post('/reset-password', resetPassword);
-console.log('Registering /profile PUT');
+
+// Profile routes
 router.put('/profile', protect, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
@@ -39,15 +36,13 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
-console.log('Registering /activity-summary');
-// Activity summary endpoint
+// Activity summary
 router.get('/activity-summary', protect, async (req, res) => {
   try {
     const userId = req.user._id;
     const projectsCount = await Project.countDocuments({ user: userId }) || 0;
     const tasksCount = await Task.countDocuments({ user: userId }) || 0;
     const completedTasksCount = await Task.countDocuments({ user: userId, status: 'completed' }) || 0;
-    console.log('Activity summary for user:', userId.toString(), { projectsCount, tasksCount, completedTasksCount });
     res.json({
       projectsCount,
       tasksCount,
@@ -58,26 +53,23 @@ router.get('/activity-summary', protect, async (req, res) => {
   }
 });
 
-console.log('Registering /profile GET');
-// Add user profile endpoint
+// User profile
 router.get('/profile', protect, async (req, res) => {
   res.json(req.user);
 });
 
-// Request OTP for password change
+// Password reset routes
 router.post('/request-password-otp', async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.otp = otp;
-    user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Configure nodemailer transporter (reuse your existing config if available)
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -98,15 +90,11 @@ router.post('/request-password-otp', async (req, res) => {
   }
 });
 
-// Update password with OTP
 router.put('/update-password', async (req, res) => {
   try {
     const { email, password, otp } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
-
-    // Debug log
-    console.log('DB OTP:', user.otp, 'User input OTP:', otp, 'Expiry:', user.otpExpiry, 'Now:', Date.now());
 
     if (!user.otp || !user.otpExpiry || String(user.otp) !== String(otp) || user.otpExpiry < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
