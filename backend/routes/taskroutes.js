@@ -8,8 +8,8 @@ console.log('Registering /tasks POST');
 router.post('/', protect, async (req, res) => {
   try {
     const task = await Task.create({
-      ...req.body, // must include project, title, etc.
-      user: req.user._id // Add the user ID from the auth middleware
+      ...req.body,
+      user: req.user._id
     });
     res.status(201).json(task);
   } catch (error) {
@@ -19,8 +19,8 @@ router.post('/', protect, async (req, res) => {
 });
 
 console.log('Registering /tasks GET for project');
-// Get all tasks for a project
-router.get('/by-project/:projectId', protect, async (req, res) => {
+// Get tasks by project
+router.get('/list/:projectId', protect, async (req, res) => {
   try {
     const tasks = await Task.find({ 
       project: req.params.projectId, 

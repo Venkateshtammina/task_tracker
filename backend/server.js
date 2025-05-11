@@ -12,6 +12,8 @@ connectDB();
 
 // Initialize app
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -20,17 +22,14 @@ const authRoutes = require('./routes/authroutes');
 const projectRoutes = require('./routes/projectroutes');
 const taskRoutes = require('./routes/taskroutes');
 
-// API routes
+// Basic route handling
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Serve static files from the React app
+// Serve static files in production
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React app
   app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-  // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
   });
@@ -40,7 +39,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!' });
@@ -48,7 +47,10 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log('Environment:', process.env.NODE_ENV);
+});
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
