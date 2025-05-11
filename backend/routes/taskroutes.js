@@ -3,7 +3,7 @@ const router = express.Router();
 const protect = require('../middleware/auth');
 const Task = require('../models/Task');
 
-// Create Task
+// Create task
 router.post('/', protect, async (req, res) => {
   try {
     const task = await Task.create({
@@ -16,8 +16,8 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// Get tasks by project
-router.get('/list/:projectId', protect, async (req, res) => {
+// Get tasks
+router.get('/project/:projectId', protect, async (req, res) => {
   try {
     const tasks = await Task.find({ 
       project: req.params.projectId, 
@@ -29,7 +29,7 @@ router.get('/list/:projectId', protect, async (req, res) => {
   }
 });
 
-// Update Task
+// Update task
 router.put('/:id', protect, async (req, res) => {
   try {
     const task = await Task.findByIdAndUpdate(
@@ -46,7 +46,7 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// Delete Task
+// Delete task
 router.delete('/:id', protect, async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);

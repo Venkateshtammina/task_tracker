@@ -5,8 +5,7 @@ const {
   loginUser, 
   forgotPassword, 
   verifyOTP, 
-  resetPassword,
-  updateUserProfile
+  resetPassword
 } = require('../controllers/authcontroller');
 const protect = require('../middleware/auth');
 const Project = require('../models/Project');
