@@ -3,7 +3,6 @@ const router = express.Router();
 const protect = require('../middleware/auth');
 const Task = require('../models/Task');
 
-console.log('Registering /tasks POST');
 // Create Task
 router.post('/', protect, async (req, res) => {
   try {
@@ -13,12 +12,10 @@ router.post('/', protect, async (req, res) => {
     });
     res.status(201).json(task);
   } catch (error) {
-    console.error('Task creation error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-console.log('Registering /tasks GET for project');
 // Get tasks by project
 router.get('/list/:projectId', protect, async (req, res) => {
   try {
@@ -28,12 +25,10 @@ router.get('/list/:projectId', protect, async (req, res) => {
     });
     res.json(tasks);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-console.log('Registering /tasks PUT');
 // Update Task
 router.put('/:id', protect, async (req, res) => {
   try {
@@ -47,12 +42,10 @@ router.put('/:id', protect, async (req, res) => {
     }
     res.json(task);
   } catch (error) {
-    console.error('Error updating task:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-console.log('Registering /tasks DELETE');
 // Delete Task
 router.delete('/:id', protect, async (req, res) => {
   try {
@@ -62,7 +55,6 @@ router.delete('/:id', protect, async (req, res) => {
     }
     res.json({ message: 'Task deleted successfully' });
   } catch (error) {
-    console.error('Error deleting task:', error);
     res.status(500).json({ message: error.message });
   }
 });

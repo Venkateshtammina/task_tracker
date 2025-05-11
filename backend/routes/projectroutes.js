@@ -3,13 +3,9 @@ const router = express.Router();
 const Project = require('../models/Project');
 const protect = require('../middleware/auth');
 
-console.log('Registering /projects POST');
 // Create a project (max 4 per user)
 router.post('/', protect, async (req, res) => {
   try {
-    console.log('User:', req.user);
-    console.log('Request body:', req.body);
-
     // Check for duplicate project name for this user
     const existing = await Project.findOne({ user: req.user._id, name: req.body.name });
     if (existing) {
@@ -22,12 +18,10 @@ router.post('/', protect, async (req, res) => {
     });
     res.status(201).json(project);
   } catch (error) {
-    console.error('Project creation error:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-console.log('Registering /projects GET');
 // Get all projects of the user
 router.get('/', protect, async (req, res) => {
   try {
@@ -38,7 +32,6 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-console.log('Registering /projects DELETE');
 // Delete a project
 router.delete('/:id', protect, async (req, res) => {
   try {
@@ -54,7 +47,6 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     await Project.findByIdAndDelete(req.params.id);
-
     res.json({ message: 'Project deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
