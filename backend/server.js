@@ -20,16 +20,10 @@ const authRoutes = require('./routes/authroutes');
 const projectRoutes = require('./routes/projectroutes');
 const taskRoutes = require('./routes/taskroutes');
 
-// Debug log for route registration
-function logRouteRegistration(path, router) {
-  console.log('Registering route:', path);
-  app.use(path, router);
-}
-
-// API routes with debug logs
-logRouteRegistration('/api/auth', authRoutes);
-logRouteRegistration('/api/projects', projectRoutes);
-logRouteRegistration('/api/tasks', taskRoutes);
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Serve static files from the React app
 if (process.env.NODE_ENV === 'production') {
@@ -43,8 +37,6 @@ if (process.env.NODE_ENV === 'production') {
     res.send('API is running...');
   });
 }
-
-console.log('All routes and middleware registered. Ready to start server.');
 
 // Start server
 const PORT = process.env.PORT || 5000;
