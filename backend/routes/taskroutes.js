@@ -32,9 +32,15 @@ router.get('/project/:projectId', protect, async (req, res) => {
 // Update task
 router.put('/:id', protect, async (req, res) => {
   try {
+    const update = { ...req.body };
+    if (req.body.status === 'completed') {
+      update.completedAt = new Date();
+    } else if (req.body.status && req.body.status !== 'completed') {
+      update.completedAt = null;
+    }
     const task = await Task.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      update,
       { new: true }
     );
     if (!task) {

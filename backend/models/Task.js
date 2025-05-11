@@ -7,8 +7,8 @@ const taskSchema = new mongoose.Schema({
   description: { type: String },
   status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
   priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
-  dateCreated: { type: Date, default: Date.now },
-  dateCompleted: { type: Date },
-}, { timestamps: true });
+  createdAt: { type: Date, default: Date.now },
+  completedAt: { type: Date, default: null },
+});
 
 module.exports = mongoose.model('Task', taskSchema);

@@ -409,6 +409,14 @@ const Dashboard = () => {
                                 </Typography>
                               </Box>
                               <Typography variant="body2" color="text.secondary">{task.description}</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                <strong>Created:</strong> {new Date(task.createdAt).toLocaleString()}
+                              </Typography>
+                              {task.completedAt && (
+                                <Typography variant="body2" color="text.secondary">
+                                  <strong>Completed:</strong> {new Date(task.completedAt).toLocaleString()}
+                                </Typography>
+                              )}
                             </Box>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
                               <Chip label={task.status} color={task.status === 'completed' ? 'success' : 'warning'} size="small" />
