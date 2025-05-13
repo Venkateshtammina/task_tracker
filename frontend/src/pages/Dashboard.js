@@ -58,7 +58,7 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { projects, fetchProjects } = useProjects();
+  const { projects, fetchProjects, createProject, deleteProject } = useProjects();
   const { tasks, fetchTasks, createTask, updateTask, deleteTask } = useTasks();
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
