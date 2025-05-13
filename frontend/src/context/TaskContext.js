@@ -7,8 +7,12 @@ export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
 
   const fetchTasks = async (projectId) => {
-    const res = await API.get(`/tasks/project/${projectId}`);
-    setTasks(res.data);
+    try {
+      const res = await API.get(`/tasks?project=${projectId}`);
+      setTasks(res.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
   };
 
   const createTask = async (task) => {
@@ -19,21 +23,49 @@ export const TaskProvider = ({ children }) => {
         status: task.status || 'pending'
       };
       delete formattedTask.projectId;
-      await API.post('/tasks', formattedTask);
-      await fetchTasks(formattedTask.project);
+      
+      const response = await API.post('/tasks', formattedTask);
+      setTasks(prevTasks => [...prevTasks, response.data]);
+      return { success: true };
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create task');
+      console.error('Error creating task:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to create task' 
+      };
     }
   };
 
   const updateTask = async (id, data, projectId) => {
-    await API.put(`/tasks/${id}`, data);
-    await fetchTasks(projectId);
+    try {
+      const response = await API.put(`/tasks/${id}`, data);
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task._id === id ? response.data : task
+        )
+      );
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating task:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to update task' 
+      };
+    }
   };
 
   const deleteTask = async (id, projectId) => {
-    await API.delete(`/tasks/${id}`);
-    await fetchTasks(projectId);
+    try {
+      await API.delete(`/tasks/${id}`);
+      setTasks(prevTasks => prevTasks.filter(task => task._id !== id));
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to delete task' 
+      };
+    }
   };
 
   // Only fetch tasks if a token is present (optional, for consistency)

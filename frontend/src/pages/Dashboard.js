@@ -116,20 +116,24 @@ const Dashboard = () => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (selectedProject && newTask.title.trim()) {
-      await createTask({
+      const result = await createTask({
         ...newTask,
         priority: newTask.priority || 'medium',
         projectId: selectedProject._id
       });
-      await fetchActivitySummary();
-      setNewTask({
-        title: '',
-        description: '',
-        status: 'pending',
-        priority: 'medium'
-      });
-      showSnackbar('Task created!', 'success');
-      fetchTasks(selectedProject._id);
+      
+      if (result.success) {
+        await fetchActivitySummary();
+        setNewTask({
+          title: '',
+          description: '',
+          status: 'pending',
+          priority: 'medium'
+        });
+        showSnackbar('Task created!', 'success');
+      } else {
+        showSnackbar(result.error || 'Failed to create task', 'error');
+      }
     }
   };
 
