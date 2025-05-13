@@ -8,23 +8,16 @@ export const TaskProvider = ({ children }) => {
 
   const fetchTasks = async (projectId) => {
     try {
-      const res = await API.get(`/tasks?project=${projectId}`);
-      setTasks(res.data);
+      const response = await API.get(`/tasks?projectId=${projectId}`);
+      setTasks(response.data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
   };
 
-  const createTask = async (task) => {
+  const createTask = async (taskData) => {
     try {
-      const formattedTask = {
-        ...task,
-        project: task.projectId,
-        status: task.status || 'pending'
-      };
-      delete formattedTask.projectId;
-      
-      const response = await API.post('/tasks', formattedTask);
+      const response = await API.post('/tasks', taskData);
       setTasks(prevTasks => [...prevTasks, response.data]);
       return { success: true };
     } catch (error) {
@@ -36,12 +29,12 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  const updateTask = async (id, data, projectId) => {
+  const updateTask = async (taskId, updates, projectId) => {
     try {
-      const response = await API.put(`/tasks/${id}`, data);
+      const response = await API.put(`/tasks/${taskId}`, updates);
       setTasks(prevTasks => 
         prevTasks.map(task => 
-          task._id === id ? response.data : task
+          task._id === taskId ? response.data : task
         )
       );
       return { success: true };
@@ -54,10 +47,10 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  const deleteTask = async (id, projectId) => {
+  const deleteTask = async (taskId, projectId) => {
     try {
-      await API.delete(`/tasks/${id}`);
-      setTasks(prevTasks => prevTasks.filter(task => task._id !== id));
+      await API.delete(`/tasks/${taskId}`);
+      setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       return { success: true };
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -77,7 +70,13 @@ export const TaskProvider = ({ children }) => {
   // }, [projectId]);
 
   return (
-    <TaskContext.Provider value={{ tasks, fetchTasks, createTask, updateTask, deleteTask }}>
+    <TaskContext.Provider value={{ 
+      tasks, 
+      fetchTasks, 
+      createTask, 
+      updateTask, 
+      deleteTask 
+    }}>
       {children}
     </TaskContext.Provider>
   );

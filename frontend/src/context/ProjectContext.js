@@ -1,48 +1,74 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import API from '../services/api';
 
 const ProjectContext = createContext();
 
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState(null);
 
   const fetchProjects = async () => {
-    const res = await API.get('/projects');
-    setProjects(res.data);
+    try {
+      const response = await API.get('/projects');
+      setProjects(response.data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
   };
 
   const createProject = async (name) => {
     try {
-      await API.post('/projects', { name });
-      await fetchProjects();
+      const response = await API.post('/projects', { name });
+      setProjects(prevProjects => [...prevProjects, response.data]);
+      return { success: true };
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to create project');
+      console.error('Error creating project:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to create project' 
+      };
     }
   };
 
-  const deleteProject = async (projectId) => {
+  const updateProject = async (id, data) => {
     try {
-      await API.delete(`/projects/${projectId}`);
-      await fetchProjects();
+      const response = await API.put(`/projects/${id}`, data);
+      setProjects(prevProjects => 
+        prevProjects.map(project => 
+          project._id === id ? response.data : project
+        )
+      );
+      return { success: true };
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to delete project');
+      console.error('Error updating project:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to update project' 
+      };
     }
   };
 
-  const selectProject = (project) => {
-    setSelectedProject(project);
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchProjects();
+  const deleteProject = async (id) => {
+    try {
+      await API.delete(`/projects/${id}`);
+      setProjects(prevProjects => prevProjects.filter(project => project._id !== id));
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'Failed to delete project' 
+      };
     }
-  }, []);
+  };
 
   return (
-    <ProjectContext.Provider value={{ projects, createProject, deleteProject, selectedProject, selectProject }}>
+    <ProjectContext.Provider value={{ 
+      projects, 
+      fetchProjects, 
+      createProject, 
+      updateProject, 
+      deleteProject 
+    }}>
       {children}
     </ProjectContext.Provider>
   );

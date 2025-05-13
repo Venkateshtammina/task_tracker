@@ -1,54 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useProjects } from '../context/ProjectContext';
 import { useTasks } from '../context/TaskContext';
-import { useAuth } from '../context/AuthContext';
-import { useActivity } from '../context/ActivityContext';
-import '../styles/dashboard.css';
-import { Box, Card, CardContent, Typography, Button, TextField, Grid, Paper, Select, MenuItem, Snackbar, Alert, Avatar, IconButton, Switch, Menu, Accordion, AccordionSummary, AccordionDetails, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import FolderOpenIcon from '@mui/icons-material/FolderOpen';
-import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
-import EditIcon from '@mui/icons-material/Edit';
-import axios from 'axios';
-import { LinearProgress } from '@mui/material';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  IconButton,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Paper,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Chip,
+  Avatar,
+  Tooltip,
+  useTheme,
+  createTheme,
+  ThemeProvider
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  MoreVert as MoreVertIcon,
+  ArrowBack as ArrowBackIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Person as PersonIcon,
+  Logout as LogoutIcon,
+  Dashboard as DashboardIcon,
+  Assignment as AssignmentIcon,
+  Timeline as TimelineIcon
+} from '@mui/icons-material';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { projects, createProject, deleteProject } = useProjects();
-  const { tasks, createTask, updateTask, deleteTask, fetchTasks } = useTasks();
-  const { fetchActivitySummary } = useActivity();
+  const { projects, fetchProjects } = useProjects();
+  const { tasks, fetchTasks, createTask, updateTask, deleteTask } = useTasks();
   const [showUserDetails, setShowUserDetails] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteType, setDeleteType] = useState('');
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [activitySummary, setActivitySummary] = useState({
+    totalTasks: 0,
+    completedTasks: 0,
+    pendingTasks: 0,
+    recentActivity: []
+  });
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
     status: 'pending',
     priority: 'medium'
   });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const [newProjectName, setNewProjectName] = useState('');
   const [projectSearch, setProjectSearch] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [darkMode, setDarkMode] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTaskData, setEditTaskData] = useState({ _id: '', title: '', description: '', priority: 'medium', status: 'pending', project: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [deleteType, setDeleteType] = useState('');
-  const [selectedProject, setSelectedProject] = useState(null);
 
   const theme = createTheme({
     palette: {
@@ -74,13 +112,16 @@ const Dashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
-    // Fetch all tasks for all projects on dashboard load
-    if (projects.length > 0) {
-      projects.forEach(project => {
-        fetchTasks(project._id);
-      });
+    if (user) {
+      fetchProjects();
     }
-  }, [projects]);
+  }, [user, fetchProjects]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      fetchTasks(selectedProject._id);
+    }
+  }, [selectedProject, fetchTasks]);
 
   const handleLogout = () => {
     setShowUserDetails(false);
@@ -145,9 +186,13 @@ const Dashboard = () => {
   };
 
   const handleDeleteTask = async (taskId) => {
-    setItemToDelete(taskId);
-    setDeleteType('task');
-    setDeleteConfirmOpen(true);
+    const result = await deleteTask(taskId, selectedProject._id);
+    if (result.success) {
+      await fetchActivitySummary();
+      showSnackbar('Task deleted!', 'success');
+    } else {
+      showSnackbar(result.error || 'Failed to delete task', 'error');
+    }
   };
 
   const getInitials = (name) => {
@@ -228,12 +273,31 @@ const Dashboard = () => {
 
   const handleSelectProject = (project) => {
     setSelectedProject(project);
-    fetchTasks(project._id);
   };
 
   const handleBackToProjects = () => {
     setSelectedProject(null);
   };
+
+  const fetchActivitySummary = async () => {
+    if (!selectedProject) return;
+    
+    const projectTasks = tasks.filter(task => task.project === selectedProject._id);
+    const completedTasks = projectTasks.filter(task => task.status === 'completed');
+    
+    setActivitySummary({
+      totalTasks: projectTasks.length,
+      completedTasks: completedTasks.length,
+      pendingTasks: projectTasks.length - completedTasks.length,
+      recentActivity: projectTasks
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        .slice(0, 5)
+    });
+  };
+
+  useEffect(() => {
+    fetchActivitySummary();
+  }, [tasks, selectedProject]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -267,7 +331,7 @@ const Dashboard = () => {
           {/* Project Creation Panel */}
           <Grid item xs={12} md={3}>
             <Paper elevation={4} sx={{ p: 4, borderRadius: 4, textAlign: 'center', minHeight: 350 }}>
-              <AddCircleOutlineIcon color="primary" sx={{ fontSize: 48, mb: 2 }} />
+              <AddIcon color="primary" sx={{ fontSize: 48, mb: 2 }} />
               <Typography variant="h5" sx={{ mb: 2 }}>Create Project</Typography>
               <form onSubmit={handleCreateProject} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 <TextField
@@ -379,7 +443,7 @@ const Dashboard = () => {
                   />
                   {tasks.filter(task => task.project === selectedProject._id).length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <AssignmentTurnedInIcon color="disabled" sx={{ fontSize: 48, mb: 1 }} />
+                      <AssignmentIcon color="disabled" sx={{ fontSize: 48, mb: 1 }} />
                       <Typography variant="body2" color="text.secondary">
                         No tasks for this project yet.
                       </Typography>
@@ -562,7 +626,7 @@ const Dashboard = () => {
           transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <MenuItem onClick={() => { handleCloseMenu(); navigate('/profile'); }}>
-            <AccountCircleIcon fontSize="small" sx={{ mr: 1 }} />
+            <PersonIcon fontSize="small" sx={{ mr: 1 }} />
             Profile
           </MenuItem>
           <MenuItem onClick={() => { handleCloseMenu(); navigate('/settings'); }}>
