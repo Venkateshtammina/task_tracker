@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const Project = require('../models/Project');
 const protect = require('../middleware/auth');
 
 // Get all tasks for the logged-in user
@@ -16,6 +17,16 @@ router.get('/', protect, async (req, res) => {
 // Create task
 router.post('/', protect, async (req, res) => {
   try {
+    // Verify project belongs to user
+    const project = await Project.findOne({ 
+      _id: req.body.project, 
+      user: req.user._id 
+    });
+    
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
     const task = new Task({
       ...req.body,
       user: req.user._id
@@ -30,9 +41,25 @@ router.post('/', protect, async (req, res) => {
 // Update task
 router.put('/:id', protect, async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+    const task = await Task.findOne({ 
+      _id: req.params.id, 
+      user: req.user._id 
+    });
+    
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // If project is being changed, verify new project belongs to user
+    if (req.body.project && req.body.project !== task.project.toString()) {
+      const project = await Project.findOne({ 
+        _id: req.body.project, 
+        user: req.user._id 
+      });
+      
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
     }
 
     const update = { ...req.body };
@@ -56,10 +83,15 @@ router.put('/:id', protect, async (req, res) => {
 // Delete task
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+    const task = await Task.findOne({ 
+      _id: req.params.id, 
+      user: req.user._id 
+    });
+    
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
+    
     await task.deleteOne();
     res.json({ message: 'Task deleted' });
   } catch (error) {

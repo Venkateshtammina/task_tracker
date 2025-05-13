@@ -24,6 +24,11 @@ const taskSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  project: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project',
+    required: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -32,6 +37,10 @@ const taskSchema = new mongoose.Schema({
     type: Date,
     default: null
   }
-});
+}, { timestamps: true });
+
+// Add indexes for faster queries
+taskSchema.index({ user: 1 });
+taskSchema.index({ project: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
