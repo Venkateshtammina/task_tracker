@@ -33,7 +33,10 @@ import {
   Tooltip,
   useTheme,
   createTheme,
-  ThemeProvider
+  ThemeProvider,
+  Select,
+  DialogContentText,
+  LinearProgress
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -47,7 +50,9 @@ import {
   Logout as LogoutIcon,
   Dashboard as DashboardIcon,
   Assignment as AssignmentIcon,
-  Timeline as TimelineIcon
+  Timeline as TimelineIcon,
+  FolderOpen as FolderOpenIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 
 const Dashboard = () => {
