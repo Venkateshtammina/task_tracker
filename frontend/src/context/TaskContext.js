@@ -6,12 +6,13 @@ const TaskContext = createContext();
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
 
-  const fetchTasks = async (projectId) => {
+  const fetchTasks = async (projectId, userId) => {
     try {
-      const response = await API.get(`/tasks?projectId=${projectId}`);
+      const response = await API.get(`/tasks?projectId=${projectId}&userId=${userId}`);
       setTasks(response.data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      throw error;
     }
   };
 
@@ -31,7 +32,7 @@ export const TaskProvider = ({ children }) => {
 
   const updateTask = async (taskId, updates, projectId) => {
     try {
-      const response = await API.put(`/tasks/${taskId}`, updates);
+      const response = await API.put(`/tasks/${taskId}`, { ...updates, projectId });
       setTasks(prevTasks => 
         prevTasks.map(task => 
           task._id === taskId ? response.data : task
@@ -47,9 +48,9 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  const deleteTask = async (taskId, projectId) => {
+  const deleteTask = async (taskId, projectId, userId) => {
     try {
-      await API.delete(`/tasks/${taskId}`);
+      await API.delete(`/tasks/${taskId}?projectId=${projectId}&userId=${userId}`);
       setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       return { success: true };
     } catch (error) {

@@ -6,18 +6,19 @@ const ProjectContext = createContext();
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = async (userId) => {
     try {
-      const response = await API.get('/projects');
+      const response = await API.get(`/projects?userId=${userId}`);
       setProjects(response.data);
     } catch (error) {
       console.error('Error fetching projects:', error);
+      throw error;
     }
   };
 
-  const createProject = async (name) => {
+  const createProject = async (name, userId) => {
     try {
-      const response = await API.post('/projects', { name });
+      const response = await API.post('/projects', { name, userId });
       setProjects(prevProjects => [...prevProjects, response.data]);
       return { success: true };
     } catch (error) {
@@ -29,9 +30,9 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const updateProject = async (id, data) => {
+  const updateProject = async (id, data, userId) => {
     try {
-      const response = await API.put(`/projects/${id}`, data);
+      const response = await API.put(`/projects/${id}`, { ...data, userId });
       setProjects(prevProjects => 
         prevProjects.map(project => 
           project._id === id ? response.data : project
@@ -47,9 +48,9 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const deleteProject = async (id) => {
+  const deleteProject = async (id, userId) => {
     try {
-      await API.delete(`/projects/${id}`);
+      await API.delete(`/projects/${id}?userId=${userId}`);
       setProjects(prevProjects => prevProjects.filter(project => project._id !== id));
       return { success: true };
     } catch (error) {
