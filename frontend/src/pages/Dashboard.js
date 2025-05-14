@@ -126,13 +126,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (isAuthChecked && user) {
-      fetchProjects(user._id);
+      fetchProjects();
     }
   }, [isAuthChecked, user, fetchProjects]);
 
   useEffect(() => {
     if (isAuthChecked && selectedProject && user) {
-      fetchTasks(selectedProject._id, user._id);
+      fetchTasks(selectedProject._id);
     }
   }, [isAuthChecked, selectedProject, fetchTasks, user]);
 
@@ -163,7 +163,7 @@ const Dashboard = () => {
     }
     if (newProjectName.trim()) {
       try {
-        await createProject(newProjectName, user._id);
+        await createProject(newProjectName);
         await fetchActivitySummary();
         setNewProjectName('');
         showSnackbar('Project created!', 'success');
@@ -198,8 +198,7 @@ const Dashboard = () => {
         const result = await createTask({
           ...newTask,
           priority: newTask.priority || 'medium',
-          projectId: selectedProject._id,
-          userId: user._id
+          projectId: selectedProject._id
         });
         
         if (result.success) {
@@ -230,10 +229,7 @@ const Dashboard = () => {
       return;
     }
     try {
-      await updateTask(taskId, { 
-        status: newStatus,
-        userId: user._id
-      }, selectedProject._id);
+      await updateTask(taskId, { status: newStatus }, selectedProject._id);
       await fetchActivitySummary();
       showSnackbar('Task status updated!', 'info');
     } catch (error) {
@@ -251,7 +247,7 @@ const Dashboard = () => {
       return;
     }
     try {
-      const result = await deleteTask(taskId, selectedProject._id, user._id);
+      const result = await deleteTask(taskId, selectedProject._id);
       if (result.success) {
         await fetchActivitySummary();
         showSnackbar('Task deleted!', 'success');
@@ -330,11 +326,11 @@ const Dashboard = () => {
     setIsLoading(true);
     try {
       if (deleteType === 'task') {
-        await deleteTask(itemToDelete, selectedProject._id, user._id);
+        await deleteTask(itemToDelete, selectedProject._id);
         await fetchActivitySummary();
         showSnackbar('Task deleted!', 'info');
       } else {
-        await deleteProject(itemToDelete, user._id);
+        await deleteProject(itemToDelete);
         await fetchActivitySummary();
         showSnackbar('Project deleted!', 'info');
       }
@@ -583,7 +579,7 @@ const Dashboard = () => {
                                 value={task.status}
                                 onChange={async (e) => {
                                   await handleTaskStatusChange(task._id, e.target.value);
-                                  fetchTasks(selectedProject._id, user._id);
+                                  fetchTasks(selectedProject._id);
                                 }}
                                 size="small"
                                 sx={{ minWidth: 140 }}

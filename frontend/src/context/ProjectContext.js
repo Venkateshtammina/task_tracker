@@ -1,14 +1,24 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import API from '../services/api';
+import { useAuth } from './AuthContext';
 
 const ProjectContext = createContext();
 
 export const ProjectProvider = ({ children }) => {
   const [projects, setProjects] = useState([]);
+  const { user } = useAuth();
 
-  const fetchProjects = async (userId) => {
+  // Clear projects when user changes
+  useEffect(() => {
+    if (!user) {
+      setProjects([]);
+    }
+  }, [user]);
+
+  const fetchProjects = async () => {
+    if (!user) return;
     try {
-      const response = await API.get(`/projects?userId=${userId}`);
+      const response = await API.get(`/projects?userId=${user._id}`);
       setProjects(response.data);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -16,9 +26,10 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const createProject = async (name, userId) => {
+  const createProject = async (name) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.post('/projects', { name, userId });
+      const response = await API.post('/projects', { name, userId: user._id });
       setProjects(prevProjects => [...prevProjects, response.data]);
       return { success: true };
     } catch (error) {
@@ -30,9 +41,10 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const updateProject = async (id, data, userId) => {
+  const updateProject = async (id, data) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.put(`/projects/${id}`, { ...data, userId });
+      const response = await API.put(`/projects/${id}`, { ...data, userId: user._id });
       setProjects(prevProjects => 
         prevProjects.map(project => 
           project._id === id ? response.data : project
@@ -48,9 +60,10 @@ export const ProjectProvider = ({ children }) => {
     }
   };
 
-  const deleteProject = async (id, userId) => {
+  const deleteProject = async (id) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      await API.delete(`/projects/${id}?userId=${userId}`);
+      await API.delete(`/projects/${id}?userId=${user._id}`);
       setProjects(prevProjects => prevProjects.filter(project => project._id !== id));
       return { success: true };
     } catch (error) {

@@ -1,14 +1,24 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import API from '../services/api';
+import { useAuth } from './AuthContext';
 
 const TaskContext = createContext();
 
 export const TaskProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
+  const { user } = useAuth();
 
-  const fetchTasks = async (projectId, userId) => {
+  // Clear tasks when user changes
+  useEffect(() => {
+    if (!user) {
+      setTasks([]);
+    }
+  }, [user]);
+
+  const fetchTasks = async (projectId) => {
+    if (!user || !projectId) return;
     try {
-      const response = await API.get(`/tasks?projectId=${projectId}&userId=${userId}`);
+      const response = await API.get(`/tasks?projectId=${projectId}&userId=${user._id}`);
       setTasks(response.data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -17,8 +27,9 @@ export const TaskProvider = ({ children }) => {
   };
 
   const createTask = async (taskData) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.post('/tasks', taskData);
+      const response = await API.post('/tasks', { ...taskData, userId: user._id });
       setTasks(prevTasks => [...prevTasks, response.data]);
       return { success: true };
     } catch (error) {
@@ -31,8 +42,13 @@ export const TaskProvider = ({ children }) => {
   };
 
   const updateTask = async (taskId, updates, projectId) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.put(`/tasks/${taskId}`, { ...updates, projectId });
+      const response = await API.put(`/tasks/${taskId}`, { 
+        ...updates, 
+        projectId,
+        userId: user._id 
+      });
       setTasks(prevTasks => 
         prevTasks.map(task => 
           task._id === taskId ? response.data : task
@@ -48,9 +64,10 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  const deleteTask = async (taskId, projectId, userId) => {
+  const deleteTask = async (taskId, projectId) => {
+    if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      await API.delete(`/tasks/${taskId}?projectId=${projectId}&userId=${userId}`);
+      await API.delete(`/tasks/${taskId}?projectId=${projectId}&userId=${user._id}`);
       setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       return { success: true };
     } catch (error) {
