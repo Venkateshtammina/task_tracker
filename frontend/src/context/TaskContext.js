@@ -29,6 +29,11 @@ export const TaskProvider = ({ children }) => {
   const createTask = async (taskData) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
+      // Ensure project field is present
+      if (!taskData.project) {
+        return { success: false, error: 'Project ID is required' };
+      }
+
       const response = await API.post('/tasks', taskData);
       setTasks(prevTasks => [...prevTasks, response.data]);
       return { success: true };
@@ -45,8 +50,8 @@ export const TaskProvider = ({ children }) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
       const response = await API.put(`/tasks/${taskId}`, { 
-        ...updates, 
-        projectId
+        ...updates,
+        project: projectId  // Changed from projectId to project
       });
       setTasks(prevTasks => 
         prevTasks.map(task => 

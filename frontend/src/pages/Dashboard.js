@@ -198,7 +198,7 @@ const Dashboard = () => {
         const result = await createTask({
           ...newTask,
           priority: newTask.priority || 'medium',
-          projectId: selectedProject._id
+          project: selectedProject._id
         });
         
         if (result.success) {
