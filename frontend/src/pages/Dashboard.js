@@ -92,6 +92,7 @@ const Dashboard = () => {
   const [editTaskData, setEditTaskData] = useState({ _id: '', title: '', description: '', priority: 'medium', status: 'pending', project: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   const theme = createTheme({
     palette: {
@@ -110,51 +111,77 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || !user) {
-      navigate('/login');
-    }
+    const validateAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (!token || !user) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      setIsAuthChecked(true);
+    };
+
+    validateAuth();
   }, [navigate, user]);
 
   useEffect(() => {
-    if (user) {
+    if (isAuthChecked && user) {
       fetchProjects(user._id);
     }
-  }, [user, fetchProjects]);
+  }, [isAuthChecked, user, fetchProjects]);
 
   useEffect(() => {
-    if (selectedProject && user) {
+    if (isAuthChecked && selectedProject && user) {
       fetchTasks(selectedProject._id, user._id);
     }
-  }, [selectedProject, fetchTasks, user]);
+  }, [isAuthChecked, selectedProject, fetchTasks, user]);
+
+  useEffect(() => {
+    return () => {
+      setIsAuthChecked(false);
+    };
+  }, []);
 
   const handleLogout = () => {
     setShowUserDetails(false);
+    localStorage.removeItem('token');
     logout();
     navigate('/login');
   };
 
-  const toggleUserDetails = () => {
-    setShowUserDetails(!showUserDetails);
-  };
-
-  const handleNavigation = (path) => {
-    setShowUserDetails(false);
-    navigate(path);
+  const handleAuthError = () => {
+    localStorage.removeItem('token');
+    logout();
+    navigate('/login');
   };
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    if (newProjectName.trim() && user) {
-      await createProject(newProjectName, user._id);
-      await fetchActivitySummary();
-      setNewProjectName('');
-      showSnackbar('Project created!', 'success');
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
+    if (newProjectName.trim()) {
+      try {
+        await createProject(newProjectName, user._id);
+        await fetchActivitySummary();
+        setNewProjectName('');
+        showSnackbar('Project created!', 'success');
+      } catch (error) {
+        if (error.response?.status === 401) {
+          handleAuthError();
+        } else {
+          showSnackbar(error.message || 'Failed to create project', 'error');
+        }
+      }
     }
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!user) return;
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
     setItemToDelete(projectId);
     setDeleteType('project');
     setDeleteConfirmOpen(true);
@@ -162,47 +189,81 @@ const Dashboard = () => {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
-    if (selectedProject && newTask.title.trim() && user) {
-      const result = await createTask({
-        ...newTask,
-        priority: newTask.priority || 'medium',
-        projectId: selectedProject._id,
-        userId: user._id
-      });
-      
-      if (result.success) {
-        await fetchActivitySummary();
-        setNewTask({
-          title: '',
-          description: '',
-          status: 'pending',
-          priority: 'medium'
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
+    if (selectedProject && newTask.title.trim()) {
+      try {
+        const result = await createTask({
+          ...newTask,
+          priority: newTask.priority || 'medium',
+          projectId: selectedProject._id,
+          userId: user._id
         });
-        showSnackbar('Task created!', 'success');
-      } else {
-        showSnackbar(result.error || 'Failed to create task', 'error');
+        
+        if (result.success) {
+          await fetchActivitySummary();
+          setNewTask({
+            title: '',
+            description: '',
+            status: 'pending',
+            priority: 'medium'
+          });
+          showSnackbar('Task created!', 'success');
+        } else {
+          showSnackbar(result.error || 'Failed to create task', 'error');
+        }
+      } catch (error) {
+        if (error.response?.status === 401) {
+          handleAuthError();
+        } else {
+          showSnackbar(error.message || 'Failed to create task', 'error');
+        }
       }
     }
   };
 
   const handleTaskStatusChange = async (taskId, newStatus) => {
-    if (!selectedProject || !user) return;
-    await updateTask(taskId, { 
-      status: newStatus,
-      userId: user._id
-    }, selectedProject._id);
-    await fetchActivitySummary();
-    showSnackbar('Task status updated!', 'info');
+    if (!isAuthChecked || !selectedProject || !user) {
+      handleAuthError();
+      return;
+    }
+    try {
+      await updateTask(taskId, { 
+        status: newStatus,
+        userId: user._id
+      }, selectedProject._id);
+      await fetchActivitySummary();
+      showSnackbar('Task status updated!', 'info');
+    } catch (error) {
+      if (error.response?.status === 401) {
+        handleAuthError();
+      } else {
+        showSnackbar(error.message || 'Failed to update task', 'error');
+      }
+    }
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!user) return;
-    const result = await deleteTask(taskId, selectedProject._id, user._id);
-    if (result.success) {
-      await fetchActivitySummary();
-      showSnackbar('Task deleted!', 'success');
-    } else {
-      showSnackbar(result.error || 'Failed to delete task', 'error');
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
+    try {
+      const result = await deleteTask(taskId, selectedProject._id, user._id);
+      if (result.success) {
+        await fetchActivitySummary();
+        showSnackbar('Task deleted!', 'success');
+      } else {
+        showSnackbar(result.error || 'Failed to delete task', 'error');
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        handleAuthError();
+      } else {
+        showSnackbar(error.message || 'Failed to delete task', 'error');
+      }
     }
   };
 
@@ -243,7 +304,10 @@ const Dashboard = () => {
   };
 
   const handleEditTaskSubmit = async () => {
-    if (!user) return;
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
     await updateTask(editTaskData._id, {
       ...editTaskData,
       userId: user._id
@@ -259,7 +323,10 @@ const Dashboard = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!user) return;
+    if (!isAuthChecked || !user) {
+      handleAuthError();
+      return;
+    }
     setIsLoading(true);
     try {
       if (deleteType === 'task') {
@@ -272,7 +339,11 @@ const Dashboard = () => {
         showSnackbar('Project deleted!', 'info');
       }
     } catch (error) {
-      handleError(error);
+      if (error.response?.status === 401) {
+        handleAuthError();
+      } else {
+        handleError(error);
+      }
     } finally {
       setIsLoading(false);
       setDeleteConfirmOpen(false);
@@ -308,6 +379,14 @@ const Dashboard = () => {
   useEffect(() => {
     fetchActivitySummary();
   }, [tasks, selectedProject]);
+
+  if (!isAuthChecked) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>
