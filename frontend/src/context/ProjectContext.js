@@ -18,7 +18,7 @@ export const ProjectProvider = ({ children }) => {
   const fetchProjects = async () => {
     if (!user) return;
     try {
-      const response = await API.get(`/projects?userId=${user._id}`);
+      const response = await API.get('/projects');
       setProjects(response.data);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -29,7 +29,7 @@ export const ProjectProvider = ({ children }) => {
   const createProject = async (name) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.post('/projects', { name, userId: user._id });
+      const response = await API.post('/projects', { name });
       setProjects(prevProjects => [...prevProjects, response.data]);
       return { success: true };
     } catch (error) {
@@ -44,7 +44,7 @@ export const ProjectProvider = ({ children }) => {
   const updateProject = async (id, data) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      const response = await API.put(`/projects/${id}`, { ...data, userId: user._id });
+      const response = await API.put(`/projects/${id}`, data);
       setProjects(prevProjects => 
         prevProjects.map(project => 
           project._id === id ? response.data : project
@@ -63,7 +63,7 @@ export const ProjectProvider = ({ children }) => {
   const deleteProject = async (id) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
-      await API.delete(`/projects/${id}?userId=${user._id}`);
+      await API.delete(`/projects/${id}`);
       setProjects(prevProjects => prevProjects.filter(project => project._id !== id));
       return { success: true };
     } catch (error) {
