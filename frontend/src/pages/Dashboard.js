@@ -111,22 +111,22 @@ const Dashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
+    if (!token || !user) {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [navigate, user]);
 
   useEffect(() => {
     if (user) {
-      fetchProjects();
+      fetchProjects(user._id);
     }
   }, [user, fetchProjects]);
 
   useEffect(() => {
-    if (selectedProject) {
-      fetchTasks(selectedProject._id);
+    if (selectedProject && user) {
+      fetchTasks(selectedProject._id, user._id);
     }
-  }, [selectedProject, fetchTasks]);
+  }, [selectedProject, fetchTasks, user]);
 
   const handleLogout = () => {
     setShowUserDetails(false);
@@ -145,8 +145,8 @@ const Dashboard = () => {
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
-    if (newProjectName.trim()) {
-      await createProject(newProjectName);
+    if (newProjectName.trim() && user) {
+      await createProject(newProjectName, user._id);
       await fetchActivitySummary();
       setNewProjectName('');
       showSnackbar('Project created!', 'success');
@@ -154,6 +154,7 @@ const Dashboard = () => {
   };
 
   const handleDeleteProject = async (projectId) => {
+    if (!user) return;
     setItemToDelete(projectId);
     setDeleteType('project');
     setDeleteConfirmOpen(true);
@@ -161,11 +162,12 @@ const Dashboard = () => {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
-    if (selectedProject && newTask.title.trim()) {
+    if (selectedProject && newTask.title.trim() && user) {
       const result = await createTask({
         ...newTask,
         priority: newTask.priority || 'medium',
-        projectId: selectedProject._id
+        projectId: selectedProject._id,
+        userId: user._id
       });
       
       if (result.success) {
@@ -184,14 +186,18 @@ const Dashboard = () => {
   };
 
   const handleTaskStatusChange = async (taskId, newStatus) => {
-    if (!selectedProject) return;
-    await updateTask(taskId, { status: newStatus }, selectedProject._id);
+    if (!selectedProject || !user) return;
+    await updateTask(taskId, { 
+      status: newStatus,
+      userId: user._id
+    }, selectedProject._id);
     await fetchActivitySummary();
     showSnackbar('Task status updated!', 'info');
   };
 
   const handleDeleteTask = async (taskId) => {
-    const result = await deleteTask(taskId, selectedProject._id);
+    if (!user) return;
+    const result = await deleteTask(taskId, selectedProject._id, user._id);
     if (result.success) {
       await fetchActivitySummary();
       showSnackbar('Task deleted!', 'success');
@@ -237,12 +243,10 @@ const Dashboard = () => {
   };
 
   const handleEditTaskSubmit = async () => {
+    if (!user) return;
     await updateTask(editTaskData._id, {
-      title: editTaskData.title,
-      description: editTaskData.description,
-      priority: editTaskData.priority,
-      status: editTaskData.status,
-      project: editTaskData.project
+      ...editTaskData,
+      userId: user._id
     }, editTaskData.project);
     await fetchActivitySummary();
     setEditDialogOpen(false);
@@ -255,14 +259,15 @@ const Dashboard = () => {
   };
 
   const handleConfirmDelete = async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
       if (deleteType === 'task') {
-        await deleteTask(itemToDelete, /* optionally pass projectId if needed */);
+        await deleteTask(itemToDelete, selectedProject._id, user._id);
         await fetchActivitySummary();
         showSnackbar('Task deleted!', 'info');
       } else {
-        await deleteProject(itemToDelete);
+        await deleteProject(itemToDelete, user._id);
         await fetchActivitySummary();
         showSnackbar('Project deleted!', 'info');
       }
@@ -499,7 +504,7 @@ const Dashboard = () => {
                                 value={task.status}
                                 onChange={async (e) => {
                                   await handleTaskStatusChange(task._id, e.target.value);
-                                  fetchTasks(selectedProject._id);
+                                  fetchTasks(selectedProject._id, user._id);
                                 }}
                                 size="small"
                                 sx={{ minWidth: 140 }}
